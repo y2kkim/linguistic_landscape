@@ -4,10 +4,6 @@ author: "Young-Kyung Kim"
 date: "3/13/2021"
 output: pdf_document
 ---
-
-```{r setup, include=FALSE}
-```
-
 ## Data cleaning
 
 ```{r}
@@ -25,9 +21,12 @@ df$prom_lang_matched <- ifelse(df$eng_hier == df$kor_hier, FALSE, ifelse(df$kor_
 df$prom_lang <- ifelse(df$prom_size > 50, NA, (ifelse(df$kor_hier == df$prom_size, 'han', ifelse(df$eng_hier == df$prom_size, 'roman', 'other'))))
 #set the right ones to factor variables
 df[c("type_loan", "type_loan_2", "type_loan_3")] <- lapply(df[c("type_loan", "type_loan_2", "type_loan_3")], as.factor)
-levels(df$type_loan) <- c("1", "2", "3", "4", "5")
-levels(df$type_loan_2) <- c("1", "2", "3", "4", "5")
-levels(df$type_loan_3) <- c("1", "2", "3", "4", "5")
+
+#levels(df$type_loan) <- c("1", "2", "3", "4", "5")
+#levels(df$type_loan_2) <- c("1", "2", "3", "4", "5")
+#levels(df$type_loan_3) <- c("1", "2", "3", "4", "5")
+df$total_loanwords <- sum(df$no_loan, df$no_loan_2, df$no_loan_3)
+df$total_loan_2 <- 
 #if there is one script, which one is it? factor variables 
 df$lang <- ifelse(df$prom_size > 50, 
                   ifelse(df$kor_check == 1, 1, 
@@ -69,12 +68,14 @@ df_sign <- df
 
 ## SCRIPTS BY SIGN
 ```{r}
-#hand-coding this first table and it's really atrocious 
+# Total signs in each location
 total_signs <- nrow(df_sign)
 koreatown_signs <- df_sign[df_sign$location == 0, ]
 itaewon_signs <- df_sign[df_sign$location == 1, ]
 koreatown_total <- nrow(koreatown_signs)
 itaewon_total <- nrow(itaewon_signs)
+
+# Proportions of dominant scripts in each location 
 koreatown_hangeul <- sum(koreatown_signs$lang == 1, na.rm=TRUE)
 koreatown_english <- sum(koreatown_signs$lang == 2, na.rm=TRUE)
 koreatown_other <- sum(koreatown_signs$lang > 2, na.rm=TRUE)
@@ -86,7 +87,7 @@ itaewon_mixed <- sum(!is.na(itaewon_signs$prom_lang), na.rm=TRUE)
 koreatown_sum <- sum(koreatown_hangeul,koreatown_english,koreatown_other,koreatown_mixed)
 itaewon_sum <- sum(itaewon_hangeul+itaewon_english+itaewon_other+itaewon_mixed)
 
-table_sign <- data.frame(c(koreatown_hangeul, itaewon_hangeul, sum(koreatown_hangeul, itaewon_hangeul)), 
+dominant_scripts <- data.frame(c(koreatown_hangeul, itaewon_hangeul, sum(koreatown_hangeul, itaewon_hangeul)), 
                          c(koreatown_hangeul/koreatown_total, itaewon_hangeul/itaewon_total, ''),
                          c(koreatown_english, itaewon_english, sum(koreatown_english, itaewon_english)), 
                          c(koreatown_english/koreatown_total, itaewon_english/itaewon_total, ''),
@@ -97,19 +98,106 @@ table_sign <- data.frame(c(koreatown_hangeul, itaewon_hangeul, sum(koreatown_han
                          c(koreatown_sum, itaewon_sum, sum(koreatown_sum, itaewon_sum)),
                          c(koreatown_total, itaewon_total, total_signs))
 
-names(table_sign) <- c('h_int', 'h_prop', 'e_int', 'e_prop', 'o_int', 'o_prop', 'm_int', 'm_prop', 'temp_totals', 'total')
+names(dominant_scripts) <- c('h_int', 'h_prop', 'e_int', 'e_prop', 'o_int', 'o_prop', 'm_int', 'm_prop', 'temp_totals', 'total')
+dominant_scripts
 ```
 
-## A more efficient way to code tables
+## SCRIPTS BY AREA
 ```{r}
-mat <- matrix(, nrow = 15, ncol = n.columns)
-koreatown_signs[c("point_id", "sign_id", "site_description", "location")] <- NULL
+# it makes sense to do loanword shit with the area table since no rows have been deleted 
+koreatown_area <- df_area[df_area$location == 0, ]
+itaewon_area <- df_area[df_area$location == 1, ]
+
+koreatown_loanwords <- sum(c(koreatown_area$no_loan, koreatown_area$no_loan_2, koreatown_area$no_loan_3), na.rm=TRUE)
+itaewon_loanwords <- sum(c(itaewon_area$no_loan, itaewon_area$no_loan_2, itaewon_area$no_loan_3), na.rm=TRUE)
+total_loanwords <- sum(c(df_area$no_loan, df_area$no_loan_2, df_area$no_loan_3), na.rm=TRUE)
+
 library(dplyr)
-d <- koreatown_signs %>% count(type_loan)
-f <- itaewon_signs %>% count(type_loan)
-t(d)
-t(f)
+#create a table that contains all the summaries we need 
+koreatown_signs[c("point_id", "sign_id", "site_description", "location")] <- NULL
 itaewon_signs[c("point_id", "sign_id", "site_description", "location")] <- NULL
+#d <- koreatown_signs %>% count(type_loan)
+#f <- itaewon_signs %>% count(type_loan)
+#e <- t(summary(koreatown_signs$type_loan))
+```
+
+## LOANWORDS
+```{r}
+k <- aggregate(koreatown_area$no_loan, by=list(Category=koreatown_area$type_loan), FUN=sum)
+k2 <- aggregate(koreatown_area$no_loan_2, by=list(Category=koreatown_area$type_loan_2), FUN=sum)
+i <- aggregate(itaewon_area$no_loan, by=list(Category=itaewon_area$type_loan), FUN=sum)
+i2 <- aggregate(itaewon_area$no_loan_2, by=list(Category=itaewon_area$type_loan_2), FUN=sum)
+d <- aggregate(df_area$no_loan, by=list(Category=df_area$type_loan), FUN=sum)
+d2 <- aggregate(df_area$no_loan_2, by=list(Category=df_area$type_loan_2), FUN=sum)
+e <- data.frame(factor(c(1, 2, 3, 4, 5)), c(0, 0, 0, 0, 0))
+names(e) <- c("Category", "p")
+
+library(dplyr)
+loanwords_table <- full_join(k, e, by="Category")
+loanwords_table["p"] <- NULL
+
+loanwords_table <- full_join(loanwords_table, k2, by="Category")
+loanwords_table$Koreatown_Int <- rowSums(cbind(loanwords_table$x.x, loanwords_table$x.y), na.rm=TRUE)
+loanwords_table$Koreatown_Prop <- loanwords_table$Koreatown_Int/koreatown_loanwords
+
+loanwords_table <- full_join(loanwords_table, i, by="Category")
+loanwords_table <- full_join(loanwords_table, i2, by="Category")
+loanwords_table$Itaewon_Int <- rowSums(cbind(loanwords_table$x.x.x, loanwords_table$x.y.y), na.rm=TRUE)
+loanwords_table$Itaewon_Prop <- loanwords_table$Itaewon_Int/itaewon_loanwords
+
+loanwords_table <- full_join(loanwords_table, d, by="Category")
+loanwords_table <- full_join(loanwords_table, d2, by="Category")
+loanwords_table$Both_Int <- rowSums(cbind(loanwords_table$x.x.x.x, loanwords_table$x.y.y.y), na.rm=TRUE)
+loanwords_table$Both_Prop <- loanwords_table$Itaewon_Int/loanwords
+  
+loanwords_table <- loanwords_table[c("Category", "Koreatown_Int", "Koreatown_Prop", "Itaewon_Int", "Itaewon_Prop", "Both_Int", "Both_Prop")]
+
+#power test here
+power.prop.test()
+
+#now include t-tests
+#t-test for the proportion of loanwords in Koreatown and Itaewon 
+t.test(c(rep(1, koreatown_loanwords), rep(0, (sum(koreatown_area$total_words, na.rm=TRUE) - koreatown_loanwords))), c(rep(1, itaewon_loanwords), rep(0, (sum(itaewon_area$total_words, na.rm=TRUE) - itaewon_loanwords))))
+loanwords_table
+```
+
+```{r}
+# THIS IS SOME USELESS ASS CODE
+columns <- c('koreatown_area', 'itaewon_area', 'df_area')
+columns <- lapply(columns, get)
+p <- c(koreatown_loanwords, itaewon_loanwords, sum(koreatown_loanwords, itaewon_loanwords))
+table <- matrix(, nrow=3*5, ncol=2)
+counter = 1
+mask <- c(FALSE, TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, FALSE)
+for (i in 1:length(columns)) {
+  #temp <- unlist(summary(columns[[i]]['type_loan']))
+  temp <- aggregate((columns[[i]]['no_loan']), by=list(Category=(columns[[i]]['type_loan'])), FUN=sum)
+  #temp <- (unlist(str_split(temp, ":")))
+  #temp2 <- unlist(summary(columns[[i]]['type_loan_2']))
+  #temp2 <- (unlist(str_split(temp, ":")))
+  #temp3 <- unlist(summary(columns[[i]]['type_loan_3']))
+  #temp3 <- (unlist(str_split(temp, ":")))
+  # element wise sum 
+  #print(c(temp, temp2, temp3))
+  #temp <- strtoi(str_trim(temp[mask])) + strtoi(str_trim(temp2[mask])) + strtoi(str_trim(temp3[mask]))
+  #print(temp)
+  #table[(((counter-1)*5)+1):(counter*5), 1] <- temp
+  #table[(((counter-1)*5)+1):(counter*5), 2] <- temp/p[i]
+  #print(table[(((counter-1)*5)+1):(counter*5), ])
+  #print(temp)
+  #print(temp/p[i])
+  counter = counter + 1
+}
+
+
+
+table <- cbind(koreatown_signs$type_loan, itaewon_signs$type_loan)
+mat <- matrix(, nrow = 6, ncol = 4)
+mat[, 1] <- summary(koreatown_signs$type_loan)
+
+for(i in 1:2) {
+   mat[, i] <- summary(table$i)
+}
 
 koreatown_signs
 ```
@@ -121,7 +209,6 @@ t.test(c(rep(1, koreatown_hangeul), rep(0, koreatown_sum)), c(rep(1, itaewon_han
 ```
 ## Basic descriptive statistics
 ```{r}
-
 df[df$prom_size == 30,]
 library(dplyr)
 df_area %>% count()
