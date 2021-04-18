@@ -1,23 +1,24 @@
 ---
 title: "loanword_analysis"
 author: "Young-Kyung Kim"
-date: "3/13/2021"
+date: "4/17/2021"
 output: pdf_document
+classoption: landscape
 ---
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning=FALSE}
 
 library(dplyr)
 library(pwr)
 library(stringr)
 
-df <- read.csv(file="signs.csv", header=TRUE, sep=',', stringsAsFactors = FALSE)
+df <- read.csv(file="signs_final.csv", header=TRUE, sep=',', stringsAsFactors = FALSE)
 #detect whether something has two languages of similar prominence
 #set all null values to numbers so that the if-else doesn't fail early 
 df$kor_hier <- strtoi(ifelse(df$kor_hier == FALSE, 100, df$kor_hier))
 df$eng_hier <- strtoi(ifelse(df$eng_hier == FALSE, 200, df$eng_hier))
 df$other_hier <- strtoi(ifelse(df$other_hier == FALSE, 300, df$other_hier))
 #how big is the biggest text on a sign?
-df$prom_size <- pmin(df$kor_hier, df$eng_hier, df$other_hier)
+df$prom_size <- pmax(df$kor_hier, df$eng_hier, df$other_hier)
 #this is just a check for now; shouldn't be a problem after I fix the dataset. For now, exclude these rows.
 df$prom_lang_matched <- ifelse(df$eng_hier == df$kor_hier, FALSE, ifelse(df$kor_hier == df$other_hier, FALSE, ifelse(df$other_hier == df$eng_hier, FALSE, TRUE)))
 #if there are 2+ scripts, which script is more prominent?
@@ -60,7 +61,7 @@ for (i in unique(df$site_id)) {
   same_sign <- ifelse(is.na(same_sign), FALSE, same_sign)
   #number of true
   p = df[same_sign==TRUE, ]
-  same_sign[strtoi(rownames(p)[which.min(p$prom_size)])] = FALSE
+  same_sign[strtoi(rownames(p)[which.max(p$prom_size)])] = FALSE
   if (length(which(same_sign)) == 0) next
   df = df[-c(which(same_sign)),]
 }
@@ -69,7 +70,7 @@ df_sign <- df
 ```
 
 # SCRIPTS BY SIGN
-## Counts and proportions of dominant scripts across Itaewon and Koreatown.
+## 4.1 Counts and proportions of dominant scripts across Itaewon and Koreatown.
 Dominant scripts include all single-script signs of each language
 ```{r, echo=FALSE}
 # Total signs in each location
@@ -124,12 +125,15 @@ rownames(dominant_scripts) <- c("Koreatown", "Itaewon", "Both")
 dominant_scripts
 ```
 
-## Test for differences in proportions of dominant scripts in Itaewon and Koreatown 
-### Hangeul
+## Test for differences in proportions of dominant scripts in Itaewon and Koreatown
+### Power test
 ```{r, echo=FALSE}
 #power test 
 pwr.2p2n.test(n1=koreatown_total, n2=itaewon_total, sig.level=0.05, power=.8)
+```
 
+### Hangeul
+```{r, echo=FALSE}
 #test for proportions of Korean
 t.test(c(rep(1, koreatown_hangeul_all), rep(0, (koreatown_total - koreatown_hangeul_all))), c(rep(1, itaewon_hangeul_all), rep(0, (itaewon_total - itaewon_hangeul_all))))
 ```
@@ -140,62 +144,118 @@ t.test(c(rep(1, koreatown_hangeul_all), rep(0, (koreatown_total - koreatown_hang
 t.test(c(rep(1, koreatown_english_all), rep(0, (koreatown_total - koreatown_english_all))), c(rep(1, itaewon_english_all), rep(0, (itaewon_total - itaewon_english_all))))
 ```
 
-## Counts and proportions of languages in single-script signs
+
+## 4.2 Counts and proportions of languages in single-script signs
 These do not include signs where there are more than one script 
 ```{r, echo=FALSE}
 columns <- c('koreatown_signs', 'itaewon_signs', 'df_sign')
 columns <- lapply(columns, get)
 nm <- c('koreatown_signs', 'itaewon_signs', 'df_sign')
+s <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 
 for (i in 1:3) {
   d <- (data.frame(unlist(table(columns[[i]]['lang'], useNA="ifany"))))
   n <- d$Var1
   d <- t(data.frame(d[,-1]))
   colnames(d) <- n
-  print(c(nm[i]))
-  print(d)
+  #print(c(nm[i]))
+  #print(d)
 }
-#full_join(t(table(koreatown_signs$lang)), t(prop.table(table(koreatown_signs$lang))), t(table(itaewon_signs$lang)), t(prop.table(table(itaewon_signs$lang))), t(table(df_sign$lang)), t(prop.table(table(df_sign$lang))))
+k <- c(426, 874, 2, 1, 58, 1, 0, 2, 0, 0)
+k2 <- k/sum(k)
+i <- c(837, 1357, 13, 3, 24, 11, 8, 0, 2, 0)
+i2 <- i/sum(i)
+t <- c(1263, 2231, 15, 4, 82, 12, 8, 2, 2, 0)
+t2 <- t/sum(t)
+
+d <- data.frame(k, k2, i, i2, t, t2, row.names = c('Hangeul', 'English', 'Chinese', 'Japanese', 'Spanish', 'French', 'Arabic', 'Vietnamese', 'Thai', 'Russian'))
+names(d) <- c("Koreatown", "Koreatown_Prop", "Itaewon", "Itaewon_Prop", "Both", "Both_Prop")
+
+d
 ```
 
 ## SCRIPTS BY AREA
-Need to fill out this section
+### 4.4 Proportions of words weighted by size
 ```{r, echo=FALSE}
 # it makes sense to do loanword shit with the area table since no rows have been deleted 
 df_area$total_hangeul <- rowSums(cbind(df_area$korean_in_hangul, df_area$english_in_hangul), na.rm=TRUE)
 df_area$total_roman <- rowSums(cbind(df_area$english_in_roman, df_area$korean_in_roman), na.rm=TRUE)
+df_area$total_other <- rowSums(df_area[,29:36], na.rm=TRUE)
 koreatown_area <- df_area[df_area$location == 0, ]
 itaewon_area <- df_area[df_area$location == 1, ]
-
 
 koreatown_english_loanwords <- sum(c(koreatown_area$no_loan, koreatown_area$no_loan_2, koreatown_area$no_loan_3), na.rm=TRUE)
 itaewon_english_loanwords <- sum(c(itaewon_area$no_loan, itaewon_area$no_loan_2, itaewon_area$no_loan_3), na.rm=TRUE)
 total_english_loanwords <- sum(c(df_area$no_loan, df_area$no_loan_2, df_area$no_loan_3), na.rm=TRUE)
 
-total_words <- sum(df_area$total_words)
+total_words <- sum(df_area$total_words, na.rm=TRUE)
 
-#create a table that contains all the summaries we need 
-koreatown_area[c("point_id", "sign_id", "site_description", "location")] <- NULL
-itaewon_area[c("point_id", "sign_id", "site_description", "location")] <- NULL
-#d <- koreatown_signs %>% count(type_loan)
-#f <- itaewon_signs %>% count(type_loan)
-#e <- t(summary(koreatown_signs$type_loan))
+# Multiply by the size? And then normalize over the total size to get a proportion
+# Grab the relevant columns 
+total_area_m <- cbind((df_area$total_hangeul * df_area$kor_size), (df_area$total_roman*df_area$eng_size), (df_area$total_other*df_area$other_size))
+koreatown_area_m <- cbind((koreatown_area$total_hangeul * koreatown_area$kor_size), (koreatown_area$total_roman*koreatown_area$eng_size), (koreatown_area$total_other*koreatown_area$other_size))
+itaewon_area_m <- cbind((itaewon_area$total_hangeul * itaewon_area$kor_size), (itaewon_area$total_roman*itaewon_area$eng_size), (itaewon_area$total_other*itaewon_area$other_size))
+total_area_m <- sapply(data.frame(total_area_m), sum, na.rm=TRUE)
+koreatown_area_m <- sapply(data.frame(koreatown_area_m), sum, na.rm=TRUE)
+itaewon_area_m <- sapply(data.frame(itaewon_area_m), sum, na.rm=TRUE)
+total_area_m_prop <- total_area_m/sum(total_area_m)
+koreatown_area_m_prop <- koreatown_area_m/sum(koreatown_area_m)
+itaewon_area_m_prop <- itaewon_area_m/sum(itaewon_area_m)
+
+area_only <- rbind(t(koreatown_area_m), t(itaewon_area_m), t(total_area_m))
+area_props_only <- rbind(t(koreatown_area_m_prop), t(itaewon_area_m_prop), t(total_area_m_prop))
+
+area <- data.frame(cbind(area_only[,1], area_props_only[,1], area_only[,2], area_props_only[,2], area_only[,3], area_props_only[,3]), c(sum(koreatown_area_m), sum(itaewon_area_m), sum(total_area_m)))
+ 
+names(area) <- c('Hangeul_area', 'Hangeul_prop', 'English_area', 'English_prop', 'Other_area', 'Other_prop', "Total_area")
+rownames(area) <- c("Koreatown", "Itaewon", "Both")
+
+area
 ```
 
-### Counts of words in different languages
+### 4.3 Counts of words in different languages
 These are the counts of all words of all languages detected on signs.
 ```{r, echo=FALSE}
 k_check <- koreatown_area[c("total_hangeul", "total_roman", "chinese", "japanese", "span", "fren", "arabic", "viet", "thai", "russian")]
-print("Koreatown")
-sapply(k_check, sum, na.rm=TRUE)
+
+words_koreatown <- sapply(k_check, sum, na.rm=TRUE)
+props_koreatown <- (words_koreatown/sum(words_koreatown))
 
 i_check <- itaewon_area[c("total_hangeul", "total_roman", "chinese", "japanese", "span", "fren", "arabic", "viet", "thai", "russian")]
-print("Itaewon")
-sapply(i_check, sum, na.rm=TRUE)
+
+words_itaewon <- sapply(i_check, sum, na.rm=TRUE)
+props_itaewon <- (words_itaewon/sum(words_itaewon))
+
+b_check <- df_area[c("total_hangeul", "total_roman", "chinese", "japanese", "span", "fren", "arabic", "viet", "thai", "russian")]
+words_b <- sapply(b_check, sum, na.rm=TRUE)
+props_b <- (words_b/sum(words_b))
+
+words_only <- rbind(t(words_koreatown), t(words_itaewon), t(words_b))
+props_only <- rbind(t(props_koreatown), t(props_itaewon), t(props_b))
+words <- cbind(words_only[,1], props_only[,1], words_only[,2], props_only[,2], words_only[,3], props_only[,3], words_only[,4], props_only[,4], words_only[,5], props_only[,5], words_only[,6], props_only[,6], words_only[,7], props_only[,7], words_only[,8], props_only[,8], words_only[,9], props_only[,9], words_only[,10], props_only[,10], c(sum(words_koreatown), sum(words_itaewon), sum(words_b)))
+
+words <- data.frame(words)
+
+names(words) <- c('Hangeul_count', 'Hangeul_prop', 'English_count', 'English_prop', 'Chinese_count', 'Chinese_prop', 'Japanese_count', 'Japanese_prop', 'Spanish_count', 'Spanish_prop', 'French_count', 'French_prop', 'Arabic_count', 'Arabic_prop', 'Vietnamese_count', 'Vietnamese_prop', 'Thai_count', 'Thai_prop', 'Russian_count', 'Russian_prop', "Total")
+rownames(words) <- c("Koreatown", "Itaewon", "Both")
+
+words
+```
+
+### Hangeul
+```{r, echo=FALSE}
+#test for proportions of Korean words
+t.test(c(rep(1, words[1,1]), rep(0, (sum(words_koreatown)-words[1,1]))), c(rep(1, words[2,1]), rep(0, (sum(words_itaewon) - words[2,1]))))
+```
+
+### English
+```{r, echo=FALSE}
+#test for proportions of English words
+t.test(c(rep(1, words[1,3]), rep(0, (sum(words_koreatown)-words[1,3]))), c(rep(1, words[2,3]), rep(0, (sum(words_itaewon) - words[2,3]))))
 ```
 
 ## LOANWORDS
-### Basic English loanwords comparison table
+### 4.5 Basic English loanwords comparison table
 ```{r, echo=FALSE}
 k <- aggregate(koreatown_area$no_loan, by=list(Category=koreatown_area$type_loan), FUN=sum)
 k2 <- aggregate(koreatown_area$no_loan_2, by=list(Category=koreatown_area$type_loan_2), FUN=sum)
@@ -225,7 +285,7 @@ pwr.t.test(n=1200, sig.level=0.05, power=.8)
 t.test(c(rep(1, koreatown_english_loanwords), rep(0, (sum(koreatown_area$total_words, na.rm=TRUE) - koreatown_english_loanwords))), c(rep(1, itaewon_english_loanwords), rep(0, (sum(itaewon_area$total_words, na.rm=TRUE) - itaewon_english_loanwords))))
 ```
 
-### Counts and proportions of different types of English loanwords in Koreatown and Itaewon
+### 4.6 Counts and proportions of different types of English loanwords in Koreatown and Itaewon
 ```{r, echo=FALSE}
 english_loanwords_table <- full_join(k, e, by="Category")
 english_loanwords_table["p"] <- NULL
@@ -247,6 +307,7 @@ english_loanwords_table$Both_Prop <- english_loanwords_table$Both_Int/total_engl
 english_loanwords_table <- english_loanwords_table[c("Category", "Koreatown_Int", "Koreatown_Prop", "Itaewon_Int", "Itaewon_Prop", "Both_Int", "Both_Prop")]
 english_loanwords_table
 ```
+
 ### List of Korean loanwords (Roman script)
 ```{r, echo=FALSE}
 # BASED ON SIGNS 
