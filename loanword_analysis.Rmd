@@ -10,7 +10,7 @@ library(dplyr)
 library(pwr)
 library(stringr)
 
-df <- read.csv(file="Master_Coding_CSV_03132020_19.csv", header=TRUE, sep=',', stringsAsFactors = FALSE)
+df <- read.csv(file="signs.csv", header=TRUE, sep=',', stringsAsFactors = FALSE)
 #detect whether something has two languages of similar prominence
 #set all null values to numbers so that the if-else doesn't fail early 
 df$kor_hier <- strtoi(ifelse(df$kor_hier == FALSE, 100, df$kor_hier))
@@ -29,7 +29,6 @@ df[c("type_loan", "type_loan_2", "type_loan_3")] <- lapply(df[c("type_loan", "ty
 #levels(df$type_loan_2) <- c("1", "2", "3", "4", "5")
 #levels(df$type_loan_3) <- c("1", "2", "3", "4", "5")
 df$total_loanwords <- sum(df$no_loan, df$no_loan_2, df$no_loan_3)
-df$total_loan_2 <- 
 #if there is one script, which one is it? factor variables 
 df$lang <- ifelse(df$prom_size > 50, 
                   ifelse(df$kor_check == 1, 1, 
@@ -186,11 +185,11 @@ itaewon_area[c("point_id", "sign_id", "site_description", "location")] <- NULL
 ### Counts of words in different languages
 These are the counts of all words of all languages detected on signs.
 ```{r, echo=FALSE}
-k_check <- koreatown_area[c("total_hangeul", "total_roman", "chinese", "japanese", "span", "fren", "arabic", "viet", "thai", "turkish")]
+k_check <- koreatown_area[c("total_hangeul", "total_roman", "chinese", "japanese", "span", "fren", "arabic", "viet", "thai", "russian")]
 print("Koreatown")
 sapply(k_check, sum, na.rm=TRUE)
 
-i_check <- itaewon_area[c("total_hangeul", "total_roman", "chinese", "japanese", "span", "fren", "arabic", "viet", "thai", "turkish")]
+i_check <- itaewon_area[c("total_hangeul", "total_roman", "chinese", "japanese", "span", "fren", "arabic", "viet", "thai", "russian")]
 print("Itaewon")
 sapply(i_check, sum, na.rm=TRUE)
 ```
@@ -217,6 +216,7 @@ english_loanwords
 ```{r, echo=FALSE}
 #power test for the proportion of English loanwords in Koreatown and Itaewon
 pwr.2p2n.test(n1=sum(koreatown_area$total_words, na.rm=TRUE), n2=sum(itaewon_area$total_words, na.rm=TRUE), sig.level=0.05, power=.8)
+pwr.t.test(n=1200, sig.level=0.05, power=.8)
 ```
 
 ### T-test for the proportion of English loanwords in Koreatown and Itaewon 
