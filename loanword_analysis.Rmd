@@ -1,5 +1,5 @@
 ---
-title: "output_03132020_11"
+title: "loanword_analysis"
 author: "Young-Kyung Kim"
 date: "3/13/2021"
 output: pdf_document
@@ -137,7 +137,7 @@ t.test(c(rep(1, koreatown_hangeul_all), rep(0, (koreatown_total - koreatown_hang
 ### English
 ```{r, echo=FALSE}
 #test for proportions of dominant Roman script
-t.test(c(rep(1, koreatown_english_all), rep(0, (koreatown_total - koreatown_english_all))), c(rep(1, itaewon_hangeul_all), rep(0, (itaewon_total - itaewon_hangeul_all))))
+t.test(c(rep(1, koreatown_english_all), rep(0, (koreatown_total - koreatown_english_all))), c(rep(1, itaewon_english_all), rep(0, (itaewon_total - itaewon_english_all))))
 ```
 
 ## Counts and proportions of languages in single-script signs
