@@ -1,7 +1,9 @@
 # linguistic_landscape
 Code for thesis analysis 
 
-Running loanwords_analysis on it's own is sufficient-- `signs.csv` is hardcoded into the file. 
+Replication data includes 
+1) Rmd file that runs all the summary statistics and tests that comprised the quantitative part of my undergraduate thesis.
+2) `signs.csv` which is hardcoded into the Rmd file.
 
 Let me know if you have any questions! 
-`kim.youngkyung7@gmail.com`
+`yngkyk@gmail.com`
